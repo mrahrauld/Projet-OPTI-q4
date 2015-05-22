@@ -74,6 +74,14 @@ B = [bineq bequal -bequal];
 length(B)
 
 Fd= -B';
+for epsilon = 0:
+Bchange=Fd;
+Bchange(4*d.T+1:5*d.T) = -(d.demande+(d.delta_demande*epsilon));
+Bchange(5*d.T+1:6*d.T) = -(d.demande+(d.delta_demande*epsilon));
+Bchange(6*d.T+3:7*d.T+2) = d.demande+(d.delta_demande*epsilon);
+Bchange(5*d.T+1) = -(d.demande(1)+(d.delta_demande(1)*epsilon)-d.stock_initial);
+Bchange(6*d.T+3) = d.demande(1)+(d.delta_demande(1)*epsilon)-d.stock_initial;
+length(Bchange)
 
 Bd=zeros(1,m+n);
 Bd(1:n) = C';
@@ -81,19 +89,6 @@ ub_dual = inf(1, m);
 lb_dual = zeros(size(ub_dual));
 options = optimoptions(@linprog, 'Algorithm', 'simplex');%Sol entière si elle existe
 %tab = reshape(linprog(-f_dual, A_dual, b_dual, [], [], [], ub_dual),5,15)';
-%[x,fval] = linprog(C,A,B,[],[],[],[],[],options);
+%[x,f] = linprog(C,A,B,[],[],lb,ub,zeros(1,LengthC),options);
 [y,f] = linprog(Fd, Ad, Bd, [], [], [], [],[],options); %,zeros(1,LengthC),options
-Bchange=Fd;
-a=1;
-for epsilon = 0:0.1:1
-    Bchange(4*d.T+1:5*d.T) = -(d.demande+(d.delta_demande*epsilon));
-    Bchange(5*d.T+1:6*d.T) = -(d.demande+(d.delta_demande*epsilon));
-    Bchange(6*d.T+3:7*d.T+2) = d.demande+(d.delta_demande*epsilon);
-    Bchange(5*d.T+1) = -(d.demande(1)+(d.delta_demande(1)*epsilon)-d.stock_initial);
-    Bchange(6*d.T+3) = d.demande(1)+(d.delta_demande(1)*epsilon)-d.stock_initial;
-    cout(a,2)= -y'*Bchange + (d.cout_horaire*d.nb_ouvriers*35*d.T);
-    a=a+1;
-    %fval + (d.cout_horaire*d.nb_ouvriers*35*d.T)
-end
-
-%cout = -y'*Bchange + (d.cout_horaire*d.nb_ouvriers*35*d.T); %Ajout des salaires réguliers
+cout = -y'*Bchange + (d.cout_horaire*d.nb_ouvriers*35*d.T); %Ajout des salaires réguliers

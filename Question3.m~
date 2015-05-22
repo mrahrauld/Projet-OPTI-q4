@@ -1,5 +1,6 @@
 function cout = Question3(donnees)
 d = importdata(donnees);
+d.demande= d.demande + epsilon*d.delta_demande
 c = [d.cout_materiaux  d.cout_stockage  d.cout_materiaux+(d.cout_heure_sup*(d.duree_assemblage/60))  d.cout_sous_traitant  d.cout_retard];
 NBRE_VAR = 5;
 LengthC = NBRE_VAR*d.T;
