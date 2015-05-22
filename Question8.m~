@@ -80,9 +80,8 @@ end
 
 %%% -/ Calcul de la Solution \- %%%
 
-options = optimoptions(@linprog, 'Algorithm', 'simplex');
-[x,cout] =linprog(C,Aineq,bineq,Aequal,bequal,lb,ub,zeros(1,LengthC),options);
-tab = reshape(x,8,d.T)';
+options = optimoptions(@linprog, 'Algorithm', 'simplex');%Sol entière si elle existe
+tab = reshape(linprog(C,Aineq,bineq,Aequal,bequal,lb,ub,zeros(1,LengthC),options),8,15)';
 tab(1:15,9)=d.demande;
 tab
-
+[x,cout] =linprog(C,Aineq,bineq,Aequal,bequal,lb,ub,zeros(1,LengthC),options);

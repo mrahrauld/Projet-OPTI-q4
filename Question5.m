@@ -8,12 +8,12 @@ for i = 1:d.T-1
 C = [C c];
 end
 
-%%Matrice des contraintes d'égalité Ax=b
+%%% -/ Matrice des contraintes d'égalité Ax=b \- %%%
 
 Aequal = sparse(d.T+2,d.T*NBRE_VAR);
 bequal = zeros(1,d.T+2);
 
-Aequal(1,1:5) = [1 -1 1 1 1]; %pas de retard à rattraper ni de stock pour compenser
+Aequal(1,1:5) = [1 -1 1 1 1]; 
 bequal(1) = d.demande(1)-d.stock_initial;
 for i = 2:d.T
     Aequal(i,(1+NBRE_VAR*(i-1)):(NBRE_VAR*(i-1)+5)) = [1 -1 1 1 1];
@@ -26,25 +26,22 @@ bequal(d.T+1) = d.stock_initial;
 Aequal(d.T+2,d.T*NBRE_VAR)=1;
 bequal(d.T+2) = 0;
 
-Bchange(d.T+1:d.T+2)=0;
- % on ajoute le stock initial à la première égalités
-%Aequal(d.T,(NBRE_VAR*d.T)) = 0; 
 
-%Matrice des contraintes d'inégalité Ax<=b
+%%% -/ Matrice des contraintes d'inégalité Ax<=b \- %%%
+
 Aineq = sparse(5*d.T, d.T*NBRE_VAR);
 bineq = zeros(1,5*d.T);
 
 for i = 2:d.T
     Aineq(i, ((NBRE_VAR*(i-1)+1)):((NBRE_VAR*(i-1)+5))) = [-1 0 -1 -1 0]; 
     Aineq(i, (NBRE_VAR*i)) = 1;
-    %Aineq(i, (NBRE_VAR*i -3)) = 1;
     bineq(1,i) = 0;
 end
-
 Aineq(1, NBRE_VAR-1) = 1;
 Aineq(1, NBRE_VAR-3) = 0;
 Aineq(1, NBRE_VAR) = 0;
 
+%Les Upper Bounds sont maintenant contenues dans la matrice d'inégalité
 for i = d.T+1:2*d.T
     Aineq(i, (NBRE_VAR*(i-d.T-1)+1)) = 1;
     bineq(1,i) = (d.nb_ouvriers*35)/(d.duree_assemblage/60);
@@ -61,28 +58,27 @@ for i = 4*d.T+1:5*d.T
     Aineq(i, (NBRE_VAR*(i-4*d.T-1)+5)) = 1;
     bineq(1,i) = d.demande(i-4*d.T);
 end
-ub = inf(1,LengthC); % Upper bound
-lb = zeros(1,LengthC); % Lower bound
-%[m, n] = size(Aineq);
-%[meq, neq] = size(Aequal);
-A = [Aineq;Aequal;-Aequal];
+
+% transformations de la matrice égalité en 2 matrices inégalités
+A = [Aineq;Aequal;-Aequal]; 
 [m, n] = size(A);
 Ad=sparse(m+n,m);
 Ad(1:n,:)=A';
 Ad(n+1:m+n,:)=eye(m);
 B = [bineq bequal -bequal];
-length(B)
 
-Fd= -B';
-
+%Inversion de C et B
+Fd= -B'; 
 Bd=zeros(1,m+n);
 Bd(1:n) = C';
-ub_dual = inf(1, m);
-lb_dual = zeros(size(ub_dual));
-options = optimoptions(@linprog, 'Algorithm', 'simplex');%Sol entière si elle existe
-%tab = reshape(linprog(-f_dual, A_dual, b_dual, [], [], [], ub_dual),5,15)';
-%[x,fval] = linprog(C,A,B,[],[],[],[],[],options);
-[y,f] = linprog(Fd, Ad, Bd, [], [], [], [],[],options); %,zeros(1,LengthC),options
+
+
+
+options = optimoptions(@linprog, 'Algorithm', 'simplex');
+
+[y,f] = linprog(Fd, Ad, Bd, [], [], [], [],[],options); %Calcul du DUAL
+
+%Calcul de la solution avec différents epsilons
 Bchange=Fd;
 a=1;
 for epsilon = 0:0.1:1
@@ -91,9 +87,6 @@ for epsilon = 0:0.1:1
     Bchange(6*d.T+3:7*d.T+2) = d.demande+(d.delta_demande*epsilon);
     Bchange(5*d.T+1) = -(d.demande(1)+(d.delta_demande(1)*epsilon)-d.stock_initial);
     Bchange(6*d.T+3) = d.demande(1)+(d.delta_demande(1)*epsilon)-d.stock_initial;
-    cout(a,2)= -y'*Bchange + (d.cout_horaire*d.nb_ouvriers*35*d.T);
+    cout(a,1)= -y'*Bchange + (d.cout_horaire*d.nb_ouvriers*35*d.T);
     a=a+1;
-    %fval + (d.cout_horaire*d.nb_ouvriers*35*d.T)
 end
-
-%cout = -y'*Bchange + (d.cout_horaire*d.nb_ouvriers*35*d.T); %Ajout des salaires réguliers
