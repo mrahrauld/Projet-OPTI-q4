@@ -64,15 +64,20 @@ A = [Aineq;Aequal;-Aequal];
 [m, n] = size(A);
 Ad=sparse(m+n,m);
 Ad(1:n,:)=A';
-Ad(n+1:m+n,:)=eye(m);
+
 B = [bineq bequal -bequal];
+size(Ad)
 
 %Inversion de C et B
 Fd= -B'; 
-Bd=zeros(1,m+n);
 Bd(1:n) = C';
 
+%Lower bound de 0 mis en inégalités
+Ad(n+1:m+n,:)=eye(m);
+Bd=zeros(1,m+n);
 
+
+lb_dual= zeros(1,m+n);
 
 options = optimoptions(@linprog, 'Algorithm', 'simplex');
 

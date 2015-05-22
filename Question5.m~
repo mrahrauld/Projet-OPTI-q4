@@ -37,11 +37,11 @@ for i = 2:d.T
     Aineq(i, (NBRE_VAR*i)) = 1;
     bineq(1,i) = 0;
 end
-
 Aineq(1, NBRE_VAR-1) = 1;
 Aineq(1, NBRE_VAR-3) = 0;
 Aineq(1, NBRE_VAR) = 0;
 
+%Les Upper Bounds sont maintenant contenues dans la matrice d'inégalité
 for i = d.T+1:2*d.T
     Aineq(i, (NBRE_VAR*(i-d.T-1)+1)) = 1;
     bineq(1,i) = (d.nb_ouvriers*35)/(d.duree_assemblage/60);
@@ -58,28 +58,32 @@ for i = 4*d.T+1:5*d.T
     Aineq(i, (NBRE_VAR*(i-4*d.T-1)+5)) = 1;
     bineq(1,i) = d.demande(i-4*d.T);
 end
-ub = inf(1,LengthC); % Upper bound
-lb = zeros(1,LengthC); % Lower bound
-%[m, n] = size(Aineq);
-%[meq, neq] = size(Aequal);
-A = [Aineq;Aequal;-Aequal];
+
+% transformations de la matrice égalité en 2 matrices inégalités
+A = [Aineq;Aequal;-Aequal]; 
 [m, n] = size(A);
 Ad=sparse(m+n,m);
 Ad(1:n,:)=A';
-Ad(n+1:m+n,:)=eye(m);
+
 B = [bineq bequal -bequal];
-length(B)
+size(Ad)
 
-Fd= -B';
-
-Bd=zeros(1,m+n);
+%Inversion de C et B
+Fd= -B'; 
 Bd(1:n) = C';
-ub_dual = inf(1, m);
-lb_dual = zeros(size(ub_dual));
-options = optimoptions(@linprog, 'Algorithm', 'simplex');%Sol entière si elle existe
-%tab = reshape(linprog(-f_dual, A_dual, b_dual, [], [], [], ub_dual),5,15)';
-%[x,fval] = linprog(C,A,B,[],[],[],[],[],options);
-[y,f] = linprog(Fd, Ad, Bd, [], [], [], [],[],options); %,zeros(1,LengthC),options
+
+%LowerBound 
+Ad(n+1:m+n,:)=eye(m);
+Bd=zeros(1,m+n);
+
+
+lb_dual= zeros(1,m+n);
+
+options = optimoptions(@linprog, 'Algorithm', 'simplex');
+
+[y,f] = linprog(Fd, Ad, Bd, [], [], [], [],[],options); %Calcul du DUAL
+
+%Calcul de la solution avec différents epsilons
 Bchange=Fd;
 a=1;
 for epsilon = 0:0.1:1
@@ -88,9 +92,6 @@ for epsilon = 0:0.1:1
     Bchange(6*d.T+3:7*d.T+2) = d.demande+(d.delta_demande*epsilon);
     Bchange(5*d.T+1) = -(d.demande(1)+(d.delta_demande(1)*epsilon)-d.stock_initial);
     Bchange(6*d.T+3) = d.demande(1)+(d.delta_demande(1)*epsilon)-d.stock_initial;
-    cout(a,2)= -y'*Bchange + (d.cout_horaire*d.nb_ouvriers*35*d.T);
+    cout(a,1)= -y'*Bchange + (d.cout_horaire*d.nb_ouvriers*35*d.T);
     a=a+1;
-    %fval + (d.cout_horaire*d.nb_ouvriers*35*d.T)
 end
-
-%cout = -y'*Bchange + (d.cout_horaire*d.nb_ouvriers*35*d.T); %Ajout des salaires réguliers
